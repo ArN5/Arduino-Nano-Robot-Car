@@ -3,14 +3,19 @@
 //AND using the arduino to send information to the computer for you to see
 //that it is actually doing what you told it to do.
 
+//Quick note for right now the pwm on the L293D 
+//module is not working on ENB so just set it to 255
+//analogWrite(enableB,255)
+
 //first include this library
 #include <Servo.h> 
 
 
 //PING SENSOR STUFF
 //these two pins are for the ultrasonic sensor
-#define trigPin 6 
+#define trigPin 4 
 #define echoPin 5 
+
 
 //SERVO STUFF
 Servo myservo;  // create servo object to control a servo 
@@ -19,7 +24,7 @@ Servo myservo;  // create servo object to control a servo
 //PWM pins are pins 3,5,6,9,10,11
 
 //MOTOR STUFF
-  #define MAXSPEED 225 //225/255
+  #define MAXSPEED 250 //225/255
   #define MINSPEED 100 //100/255
   #define OFFSET 20 //this offset will be used to
   //compensate for one motor being stronger
@@ -40,13 +45,13 @@ int enableB = 9;
  
 int pos = 0;    // global variable to store the servo position 
 unsigned long oldTime = 0;//this variable is for the timer
-bool latch = 1;//this statement can either be 1 or 0 only 2 allowed states
+bool latch = 0;//this statement can either be 1 or 0 only 2 allowed states
  
 void setup() 
 { 
 
   //This is for sending information to the computer
-  Serial.begin (115200);
+  Serial.begin (9600);
 
   //assign the pin states to each pin
   pinMode(trigPin, OUTPUT);
@@ -57,77 +62,61 @@ void setup()
   pinMode(switch2A, OUTPUT);
   pinMode(switch1B, OUTPUT);
   pinMode(switch2B, OUTPUT);
+    pinMode(enableB, OUTPUT);
+  pinMode(enableA, OUTPUT);
 
   //instead of using pinMode() you use the servo libraries function 
   //in which you put in the format servoName.attach(PWMpin#)
   myservo.attach(3);  // attaches the servo on pin 3 to the servo object 
+
+analogWrite(enableA,255);
+analogWrite(enableB,255);
 
 } 
  
  
 void loop() 
 { 
-  //create a number variable of size "long"
-  //to hold the current distance [in centimeters]
-  //and grab it from the function getUltrasonicDistance()
-long currentDistance = getUltrasonicDistance(); 
-//https://www.arduino.cc/en/Reference/Long
 
-if(currentDistance<20)
+getUltrasonicDistance();
+
+if(getUltrasonicDistance()<20)
 {
- 
-}
-  //this function checks if its time for the servo to move position 
-checkToSweepServo(5);
-  //for delay time try to use a small number like 20~5 milliseconds
+ while(getUltrasonicDistance()<30)
+ {
 
-} 
-
-void setMotorDirection(String desiredDirection, byte desiredSpeed)
-{
-analogWrite(enableA,desiredSpeed);
-  
-  if(desiredDirection == "FORWARD")
-  {
-  digitalWrite(switch1A, HIGH);
-  digitalWrite(switch2A, LOW);
-  digitalWrite(switch1B, HIGH);
-  digitalWrite(switch2B, LOW);
-  }
-
-  if(desiredDirection == "BACKWARDS")
-  {
   digitalWrite(switch1A, LOW);
   digitalWrite(switch2A, HIGH);
   digitalWrite(switch1B, LOW);
   digitalWrite(switch2B, HIGH);
-  }
-
-  if(desiredDirection == "LEFT")
-  {
-  digitalWrite(switch1A, HIGH);
-  digitalWrite(switch2A, LOW);
-  digitalWrite(switch1B, LOW);
-  digitalWrite(switch2B, HIGH);
-  }
-
-  if(desiredDirection == "RIGHT")
-  {
-  digitalWrite(switch1A, HIGH);
-  digitalWrite(switch2A, LOW);
-  digitalWrite(switch1B, LOW);
-  digitalWrite(switch2B, HIGH);
-  }
-
-  if(desiredDirection == "STOP")
-  {
+ }
   digitalWrite(switch1A, LOW);
   digitalWrite(switch2A, LOW);
   digitalWrite(switch1B, LOW);
   digitalWrite(switch2B, LOW);
-  }
-  
+ delay(200);
+ 
+  digitalWrite(switch1A, HIGH);
+  digitalWrite(switch2A, LOW);
+  digitalWrite(switch1B, LOW);
+  digitalWrite(switch2B, HIGH);
+ delay(500);
 }
+else
+
+
+  digitalWrite(switch1A, HIGH);
+  digitalWrite(switch2A, LOW);
+  digitalWrite(switch1B, HIGH);
+  digitalWrite(switch2B, LOW);
+
+//  //this function checks if its time for the servo to move position 
+//checkToSweepServo(10);
+//  //for delay time try to use a small number like 20~5 milliseconds
+
+} 
+
+
 
 long getUltrasonicDistance()
 {
@@ -182,11 +171,13 @@ distance = (duration/2) / 29.1;
   //is this one from wikipedia
   //331.3 + 0.606*(temperature In Celsius);
 
-
+Serial.println(distance);
   //but anyways
   //to return the "distance" 
 return distance;
 }
+
+
 
 void checkToSweepServo(int delayTime)
 {
@@ -200,7 +191,7 @@ void checkToSweepServo(int delayTime)
   {                            
     if(latch)
      {
-      pos++;//add by one
+      pos = pos +10;//add by one
         
         if(pos>180)
         //if once above 180 degrees
@@ -212,7 +203,7 @@ void checkToSweepServo(int delayTime)
       
       else
       {
-        pos--;
+        pos = pos -10;
         
         if(pos<0)
         {
